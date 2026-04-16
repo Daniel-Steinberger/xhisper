@@ -5,6 +5,8 @@
 # Transcription Settings:
 long-recording-threshold : 1000
 transcription-prompt     : ""
+# language: ISO-639-1 code (e.g., de, en, fr). Empty = auto-detect.
+language                 : ""
 
 # Paste Timing (seconds):
 non-ascii-initial-delay : 0.15 # Increase this if first character comes out wrong.

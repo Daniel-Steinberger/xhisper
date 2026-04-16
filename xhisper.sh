@@ -7,6 +7,7 @@
 # Configuration (see default_xhisperrc or ~/.config/xhisper/xhisperrc):
 # - long-recording-threshold : threshold for using large vs turbo model (seconds)
 # - transcription-prompt : context words for better Whisper accuracy
+# - language : ISO-639-1 code to force transcription language (e.g., de); empty = auto-detect
 # - silence-threshold : max volume in dB to consider silent (e.g., -50)
 # - silence-percentage : percentage of recording that must be silent (e.g., 95)
 # - non-ascii-initial-delay : sleep after first non-ASCII paste (seconds)
@@ -68,6 +69,7 @@ PROCESS_PATTERN="pw-record.*$RECORDING"
 # Default configuration
 long_recording_threshold=1000
 transcription_prompt=""
+language=""
 silence_threshold=-50
 silence_percentage=95
 non_ascii_initial_delay=0.1
@@ -88,6 +90,7 @@ if [ -f "$CONFIG_FILE" ]; then
     case "$key" in
       long-recording-threshold) long_recording_threshold="$value" ;;
       transcription-prompt) transcription_prompt="$value" ;;
+      language) language="$value" ;;
       silence-threshold) silence_threshold="$value" ;;
       silence-percentage) silence_percentage="$value" ;;
       non-ascii-initial-delay) non_ascii_initial_delay="$value" ;;
@@ -209,12 +212,16 @@ transcribe() {
   local is_long_recording=$(echo "$(get_duration "$recording") > $long_recording_threshold" | bc -l)
   local model=$([[ $is_long_recording -eq 1 ]] && echo "whisper-large-v3" || echo "whisper-large-v3-turbo")
 
+  local language_args=()
+  [ -n "$language" ] && language_args=(-F "language=$language")
+
   local transcription=$(curl -s -X POST "https://api.groq.com/openai/v1/audio/transcriptions" \
     -H "Authorization: Bearer $GROQ_API_KEY" \
     -H "Content-Type: multipart/form-data" \
     -F "file=@$recording" \
     -F "model=$model" \
     -F "prompt=$transcription_prompt" \
+    "${language_args[@]}" \
     | jq -r '.text' | sed 's/^ //') # Transcription always returns a leading space, so remove it via sed
 
   logging_end_and_write_to_logfile "Transcription" "$transcription" "$logging_start"
