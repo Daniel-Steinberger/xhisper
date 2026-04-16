@@ -118,13 +118,21 @@ if ! command -v "$XHISPERTOOL" &> /dev/null; then
     exit 1
 fi
 
-# Detect clipboard tool
-if command -v wl-copy &> /dev/null; then
+# Detect clipboard tool. Prefer wl-copy only on Wayland — on X11 wl-copy has no
+# display to talk to and silently fails to update the clipboard, which then makes
+# the non-ASCII paste path re-paste whatever was there before.
+# Also: define CLIP_COPY/CLIP_PASTE as variables, not functions — `$CLIP_COPY`
+# expansion in a pipe requires the variable form (the function form expands to
+# empty string, causing the pipe to silently drop the data).
+if [ -n "$WAYLAND_DISPLAY" ] && command -v wl-copy &> /dev/null; then
     CLIP_COPY="wl-copy"
     CLIP_PASTE="wl-paste"
 elif command -v xclip &> /dev/null; then
-    CLIP_COPY() { xclip -selection clipboard; }
-    CLIP_PASTE() { xclip -o -selection clipboard; }
+    CLIP_COPY="xclip -selection clipboard"
+    CLIP_PASTE="xclip -o -selection clipboard"
+elif command -v wl-copy &> /dev/null; then
+    CLIP_COPY="wl-copy"
+    CLIP_PASTE="wl-paste"
 else
     echo "Error: No clipboard tool found. Install wl-clipboard or xclip." >&2
     exit 1
