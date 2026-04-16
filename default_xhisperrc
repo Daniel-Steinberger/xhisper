@@ -5,6 +5,8 @@
 # Transcription Settings:
 long-recording-threshold : 1000
 transcription-prompt     : ""
+# paste-mode: "type" (layout-sensitive, keeps clipboard) or "clipboard" (always paste, overwrites clipboard)
+paste-mode               : "type"
 
 # Paste Timing (seconds):
 non-ascii-initial-delay : 0.15 # Increase this if first character comes out wrong.

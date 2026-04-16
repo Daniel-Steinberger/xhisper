@@ -7,6 +7,7 @@
 # Configuration (see default_xhisperrc or ~/.config/xhisper/xhisperrc):
 # - long-recording-threshold : threshold for using large vs turbo model (seconds)
 # - transcription-prompt : context words for better Whisper accuracy
+# - paste-mode : "type" (default, layout-sensitive, keeps clipboard) or "clipboard" (always paste, overwrites clipboard)
 # - silence-threshold : max volume in dB to consider silent (e.g., -50)
 # - silence-percentage : percentage of recording that must be silent (e.g., 95)
 # - non-ascii-initial-delay : sleep after first non-ASCII paste (seconds)
@@ -68,6 +69,7 @@ PROCESS_PATTERN="pw-record.*$RECORDING"
 # Default configuration
 long_recording_threshold=1000
 transcription_prompt=""
+paste_mode="type"
 silence_threshold=-50
 silence_percentage=95
 non_ascii_initial_delay=0.1
@@ -88,6 +90,7 @@ if [ -f "$CONFIG_FILE" ]; then
     case "$key" in
       long-recording-threshold) long_recording_threshold="$value" ;;
       transcription-prompt) transcription_prompt="$value" ;;
+      paste-mode) paste_mode="$value" ;;
       silence-threshold) silence_threshold="$value" ;;
       silence-percentage) silence_percentage="$value" ;;
       non-ascii-initial-delay) non_ascii_initial_delay="$value" ;;
@@ -138,6 +141,17 @@ press_wrap_key() {
 
 paste() {
   local text="$1"
+
+  # Clipboard mode: send entire text in one paste (layout-independent, fast).
+  # Overwrites the clipboard and requires Ctrl+V to work in the target app
+  # (terminals typically need Ctrl+Shift+V — see README Troubleshooting).
+  if [ "$paste_mode" = "clipboard" ]; then
+    echo -n "$text" | $CLIP_COPY
+    sleep "$non_ascii_initial_delay"  # Wait for clipboard tool to populate the selection before pasting
+    "$XHISPERTOOL" paste
+    return
+  fi
+
   press_wrap_key
   # Type character by character
   # Use xhispertool type for ASCII (32-126), clipboard+paste for Unicode
