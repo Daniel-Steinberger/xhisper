@@ -7,7 +7,8 @@
 # Configuration (see default_xhisperrc or ~/.config/xhisper/xhisperrc):
 # - long-recording-threshold : threshold for using large vs turbo model (seconds)
 # - transcription-prompt : context words for better Whisper accuracy
-# - paste-mode : "type" (default, layout-sensitive, keeps clipboard) or "clipboard" (always paste, overwrites clipboard)
+# - paste-mode : "type" (default, layout-sensitive, keeps clipboard), "clipboard" (always paste, overwrites clipboard),
+#                or "clipboard-restore" (like clipboard, but saves and restores previous clipboard content)
 # - silence-threshold : max volume in dB to consider silent (e.g., -50)
 # - silence-percentage : percentage of recording that must be silent (e.g., 95)
 # - non-ascii-initial-delay : sleep after first non-ASCII paste (seconds)
@@ -142,13 +143,18 @@ press_wrap_key() {
 paste() {
   local text="$1"
 
-  # Clipboard mode: send entire text in one paste (layout-independent, fast).
-  # Overwrites the clipboard and requires Ctrl+V to work in the target app
-  # (terminals typically need Ctrl+Shift+V — see README Troubleshooting).
-  if [ "$paste_mode" = "clipboard" ]; then
+  # Clipboard modes: send entire text in one paste (layout-independent, fast).
+  # Requires Ctrl+V to work in the target app (terminals need Ctrl+Shift+V — see README).
+  if [ "$paste_mode" = "clipboard" ] || [ "$paste_mode" = "clipboard-restore" ]; then
+    local old_clipboard=""
+    [ "$paste_mode" = "clipboard-restore" ] && old_clipboard=$($CLIP_PASTE 2>/dev/null || true)
     echo -n "$text" | $CLIP_COPY
     sleep "$non_ascii_initial_delay"  # Wait for clipboard tool to populate the selection before pasting
     "$XHISPERTOOL" paste
+    if [ "$paste_mode" = "clipboard-restore" ]; then
+      sleep "$non_ascii_initial_delay"  # Brief pause before restoring to avoid a race with the paste landing
+      echo -n "$old_clipboard" | $CLIP_COPY
+    fi
     return
   fi
 

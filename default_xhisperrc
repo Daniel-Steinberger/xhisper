@@ -5,7 +5,9 @@
 # Transcription Settings:
 long-recording-threshold : 1000
 transcription-prompt     : ""
-# paste-mode: "type" (layout-sensitive, keeps clipboard) or "clipboard" (always paste, overwrites clipboard)
+# paste-mode: "type" (layout-sensitive, keeps clipboard),
+#             "clipboard" (always paste via clipboard, overwrites clipboard), or
+#             "clipboard-restore" (like clipboard, but saves and restores previous clipboard content)
 paste-mode               : "type"
 
 # Paste Timing (seconds):
