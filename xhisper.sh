@@ -84,9 +84,9 @@ if [ -f "$CONFIG_FILE" ]; then
     [[ "$key" =~ ^[[:space:]]*# ]] && continue
     [[ -z "$key" ]] && continue
 
-    # Trim whitespace and quotes
+    # Trim whitespace, inline comments, and surrounding quotes
     key=$(echo "$key" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
-    value=$(echo "$value" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//;s/^"//;s/"$//')
+    value=$(echo "$value" | sed 's/^[[:space:]]*//;s/[[:space:]]\+#.*$//;s/[[:space:]]*$//;s/^"//;s/"$//')
 
     case "$key" in
       long-recording-threshold) long_recording_threshold="$value" ;;
@@ -122,13 +122,17 @@ if ! command -v "$XHISPERTOOL" &> /dev/null; then
     exit 1
 fi
 
-# Detect clipboard tool
-if command -v wl-copy &> /dev/null; then
+# Detect clipboard tool. Prefer wl-copy only on Wayland — on X11 wl-copy has no
+# display to talk to and silently fails to update the clipboard.
+if [ -n "$WAYLAND_DISPLAY" ] && command -v wl-copy &> /dev/null; then
     CLIP_COPY="wl-copy"
     CLIP_PASTE="wl-paste"
 elif command -v xclip &> /dev/null; then
-    CLIP_COPY() { xclip -selection clipboard; }
-    CLIP_PASTE() { xclip -o -selection clipboard; }
+    CLIP_COPY="xclip -selection clipboard"
+    CLIP_PASTE="xclip -o -selection clipboard"
+elif command -v wl-copy &> /dev/null; then
+    CLIP_COPY="wl-copy"
+    CLIP_PASTE="wl-paste"
 else
     echo "Error: No clipboard tool found. Install wl-clipboard or xclip." >&2
     exit 1
