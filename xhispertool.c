@@ -154,7 +154,8 @@ void emit(int type, int code, int val) {
         .code = code,
         .value = val
     };
-    write(fd_uinput, &ie, sizeof(ie));
+    if (write(fd_uinput, &ie, sizeof(ie)) < 0)
+        perror("write uinput");
 }
 
 void do_paste() {
