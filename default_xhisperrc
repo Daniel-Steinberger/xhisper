@@ -5,10 +5,37 @@
 # Transcription Settings:
 long-recording-threshold : 1000
 transcription-prompt     : ""
+language                 : ""    # ISO 639-1 (e.g. "en", "de"). Empty = auto-detect.
+
+# Paste Mode:
+#   auto              = clipboard-restore on Wayland, type on X11 (default)
+#   type              = type each ASCII char via uinput (assumes US QWERTY)
+#   clipboard         = paste whole text via clipboard (layout-independent)
+#   clipboard-restore = like clipboard, but restores previous clipboard after
+paste-mode : auto
+
+# Placeholders (status feedback during recording/transcribing):
+#   auto    = notify on Wayland, inline on X11 (default)
+#   inline  = paste status into the text field, then backspace it on completion
+#   notify  = notify-send popup (no inline pollution, no backspace fragility)
+#   off     = no feedback at all
+placeholders : auto
+
+# Status strings (used inline AND in notify body):
+placeholder-recording    : "🎤"
+placeholder-transcribing : "⏳"
+placeholder-silent       : "🔇 no sound"
+
+# Logging:
+#   false (default): one line per transcription in /tmp/xhisper.log
+#   true:            full per-event trace + per-backspace daemon log
+#                    (daemon must be restarted: `pkill -x xhispertoold`)
+debug-log : false
 
 # Paste Timing (seconds):
 non-ascii-initial-delay : 0.15 # Increase this if first character comes out wrong.
 non-ascii-default-delay : 0.025
+paste-clipboard-delay   : 0.15 # Wait between wl-copy and Ctrl+V (paste-mode=clipboard*).
 
 # Silence Detection:
 silence-threshold  : -50

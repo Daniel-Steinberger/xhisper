@@ -6,6 +6,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdarg.h>
+#include <time.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
@@ -118,6 +120,23 @@ static const int32_t ascii2keycode_map[128] = {
 
 static int fd_uinput = -1;
 static int fd_socket = -1;
+static FILE *log_fp = NULL;
+
+static void daemon_log(const char *fmt, ...) {
+    if (!log_fp) return;
+    struct timespec ts;
+    clock_gettime(CLOCK_REALTIME, &ts);
+    struct tm tm;
+    localtime_r(&ts.tv_sec, &tm);
+    fprintf(log_fp, "[%02d:%02d:%02d.%03ld] [pid=%d] ",
+            tm.tm_hour, tm.tm_min, tm.tm_sec, ts.tv_nsec / 1000000, getpid());
+    va_list args;
+    va_start(args, fmt);
+    vfprintf(log_fp, fmt, args);
+    va_end(args);
+    fputc('\n', log_fp);
+    fflush(log_fp);
+}
 
 void cleanup() {
     if (fd_uinput >= 0) {
@@ -181,11 +200,14 @@ void type_char(unsigned char c) {
 }
 
 void do_backspace() {
+    daemon_log("backspace emit start");
     emit(EV_KEY, KEY_BACKSPACE, 1);
     emit(EV_SYN, SYN_REPORT, 0);
     usleep(8000);
     emit(EV_KEY, KEY_BACKSPACE, 0);
     emit(EV_SYN, SYN_REPORT, 0);
+    usleep(20000);  // gap before next event — Mutter/libinput dedups rapid identical keys
+    daemon_log("backspace emit end");
 }
 
 void do_key(int keycode) {
@@ -287,6 +309,10 @@ int setup_socket() {
 int run_daemon() {
     atexit(cleanup);
 
+    if (getenv("XHISPER_DEBUG")) {
+        log_fp = fopen("/tmp/xhispertoold.log", "a");
+    }
+
     if (setup_uinput() < 0) {
         return 1;
     }
@@ -295,6 +321,7 @@ int run_daemon() {
         return 1;
     }
 
+    daemon_log("daemon started, listening on @xhisper_socket");
     printf("xhispertoold: listening on @xhisper_socket\n");
 
     char buf[2];
